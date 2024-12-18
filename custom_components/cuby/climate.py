@@ -17,6 +17,10 @@ from homeassistant.const import (
     ATTR_TEMPERATURE,
     UnitOfTemperature,
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
 from . import DOMAIN, CubyAPI
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,7 +41,11 @@ FAN_MODES = {
     "high": FAN_HIGH,
 }
 
-async def async_setup_entry(hass, entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     """Set up the Cuby climate platform from a config entry."""
     api = hass.data[DOMAIN][entry.entry_id]
     _LOGGER.debug("Fetching Cuby devices...")
