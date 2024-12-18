@@ -18,7 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 DOMAIN = "cuby"
 CONF_EXPIRATION = "expiration"
 
-PLATFORMS = [Platform.CLIMATE]
+PLATFORMS = [Platform.CLIMATE, Platform.SENSOR]
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -118,6 +118,39 @@ class CubyAPI:
         except Exception as err:
             _LOGGER.error("Error setting device state: %s", err)
             return False
+
+    async def discover_devices(self) -> list:
+        """Discover and return all available devices."""
+        devices = await self.get_devices()
+        discovered = []
+        
+        for device in devices:
+            try:
+                state = await self.get_device_state(device["id"])
+                device["state"] = state
+                discovered.append(device)
+            except Exception as err:
+                _LOGGER.error("Error discovering device %s: %s", device.get("id"), err)
+                
+        return discovered
+
+    async def get_device_info(self, device_id: str) -> dict:
+        """Get detailed device information."""
+        if not self.token:
+            if not await self.authenticate():
+                return {}
+
+        try:
+            url = f"https://cuby.cloud/api/v2/devices/{device_id}"
+            headers = {"Authorization": f"Bearer {self.token}"}
+            
+            async with self._session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    return await response.json()
+                return {}
+        except Exception as err:
+            _LOGGER.error("Error getting device info: %s", err)
+            return {}
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Cuby component."""
