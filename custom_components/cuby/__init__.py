@@ -15,6 +15,9 @@ from homeassistant.helpers import config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
+# Add debug logging at module level
+_LOGGER.debug("Loading Cuby integration")
+
 DOMAIN = "cuby"
 CONF_EXPIRATION = "expiration"
 
@@ -32,6 +35,12 @@ CONFIG_SCHEMA = vol.Schema(
     },
     extra=vol.ALLOW_EXTRA,
 )
+
+class CubyConnectionError(Exception):
+    """Error to indicate a connection error occurred."""
+
+class CubyAuthError(Exception):
+    """Error to indicate an authentication error occurred."""
 
 class CubyAPI:
     """Cuby API client."""
@@ -57,12 +66,16 @@ class CubyAPI:
             }
 
             async with self._session.post(url, json=payload) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    if data.get("status") == "ok":
-                        self.token = data.get("token")
-                        return True
+                if response.status == 401:
+                    raise CubyAuthError("Invalid credentials")
+                response.raise_for_status()
+                data = await response.json()
+                if data.get("status") == "ok":
+                    self.token = data.get("token")
+                    return True
                 return False
+        except aiohttp.ClientError as err:
+            raise CubyConnectionError(f"Connection error: {err}") from err
         except Exception as err:
             _LOGGER.error("Error authenticating with Cuby API: %s", err)
             return False
@@ -199,6 +212,8 @@ class CubyAPI:
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Cuby component."""
+    _LOGGER.debug("Setting up Cuby integration")
+    
     if DOMAIN not in config:
         return True
 
@@ -207,11 +222,15 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     password = conf[CONF_PASSWORD]
     expiration = conf[CONF_EXPIRATION]
 
+    if expiration == 0:
+        _LOGGER.warning("Token expiration is set to 0, this might cause issues")
+
     api = CubyAPI(username, password, expiration)
     if not await api.authenticate():
         _LOGGER.error("Failed to authenticate with Cuby API")
         return False
 
+    _LOGGER.info("Successfully authenticated with Cuby API")
     hass.data[DOMAIN] = api
 
     for platform in PLATFORMS:

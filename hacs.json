@@ -1,10 +1,8 @@
 {
-  "name": "Cuby Smart A/C Control",
-  "description": "Control Cuby Smart A/C devices via Home Assistant.",
-  "domain": "cuby",
-  "codeowner": ["@eljamz"],
+  "name": "Cuby A/C Control",
+  "domains": ["climate", "sensor"],
   "documentation": "https://github.com/eljamz/hass-cuby-ac",
-  "version": "1.0.0",
-  "requirements": [],
-  "config_flow": false
+  "issue_tracker": "https://github.com/eljamz/hass-cuby-ac/issues",
+  "render_readme": true,
+  "homeassistant": "2023.8.0"
 }

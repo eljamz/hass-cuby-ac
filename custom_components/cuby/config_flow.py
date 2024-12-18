@@ -14,6 +14,15 @@ from . import DOMAIN, CubyAPI, CONF_EXPIRATION
 
 _LOGGER = logging.getLogger(__name__)
 
+DATA_SCHEMA = vol.Schema({
+    vol.Required(CONF_USERNAME): str,
+    vol.Required(CONF_PASSWORD): str,
+    vol.Optional(CONF_EXPIRATION, default=0): vol.All(
+        vol.Coerce(int),
+        vol.Range(min=0)
+    ),
+})
+
 class CubyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Cuby."""
 
@@ -54,12 +63,6 @@ class CubyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_USERNAME): str,
-                    vol.Required(CONF_PASSWORD): str,
-                    vol.Optional(CONF_EXPIRATION, default=0): int,
-                }
-            ),
+            data_schema=DATA_SCHEMA,
             errors=errors,
         ) 

@@ -1,0 +1,21 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "data": {
+                    "username": "Correo electrónico",
+                    "password": "Contraseña",
+                    "expiration": "Expiración del token (en segundos, 0 para no expirar)"
+                }
+            }
+        },
+        "error": {
+            "invalid_auth": "Autenticación inválida",
+            "no_devices": "No se encontraron dispositivos en la cuenta",
+            "unknown": "Error inesperado"
+        },
+        "abort": {
+            "already_configured": "La cuenta ya está configurada"
+        }
+    }
+} 
