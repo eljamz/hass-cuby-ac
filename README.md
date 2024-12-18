@@ -2,8 +2,8 @@
 
 This custom integration (UNOFFICIAL) allows Home Assistant to control **Cuby smart A/C devices** using their HTTP API.
 
-You can find the official products here: https://cuby.mx/ 
-This integration is based in the official Cuby API: https://cuby.cloud/cuby/docs/api/v2/#/
+- You can find the official products here: https://cuby.mx/
+- This integration is based in the official Cuby API: https://cuby.cloud/cuby/docs/api/v2/#/
 
 
 ## Installation
