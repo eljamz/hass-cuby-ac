@@ -152,6 +152,51 @@ class CubyAPI:
             _LOGGER.error("Error getting device info: %s", err)
             return {}
 
+    async def set_ac_power(self, device_id: str, power: bool) -> bool:
+        """Turn the AC on or off."""
+        return await self.set_device_state(device_id, {"power": power})
+
+    async def set_ac_temperature(self, device_id: str, temperature: float) -> bool:
+        """Set the target temperature."""
+        # Ensure temperature is within valid range (16-30°C)
+        temp = min(max(temperature, 16), 30)
+        return await self.set_device_state(device_id, {"temperature": temp})
+
+    async def set_ac_mode(self, device_id: str, mode: str) -> bool:
+        """Set the AC operation mode."""
+        valid_modes = ["auto", "cool", "heat", "dry", "fan_only"]
+        if mode not in valid_modes:
+            _LOGGER.error("Invalid mode: %s. Must be one of %s", mode, valid_modes)
+            return False
+        return await self.set_device_state(device_id, {"mode": mode})
+
+    async def set_ac_fan_mode(self, device_id: str, fan_mode: str) -> bool:
+        """Set the fan mode."""
+        valid_fan_modes = ["auto", "low", "medium", "high"]
+        if fan_mode not in valid_fan_modes:
+            _LOGGER.error("Invalid fan mode: %s. Must be one of %s", fan_mode, valid_fan_modes)
+            return False
+        return await self.set_device_state(device_id, {"fan_mode": fan_mode})
+
+    async def set_ac_swing_mode(self, device_id: str, swing_mode: str) -> bool:
+        """Set the swing mode."""
+        valid_swing_modes = ["off", "vertical", "horizontal", "both"]
+        if swing_mode not in valid_swing_modes:
+            _LOGGER.error("Invalid swing mode: %s. Must be one of %s", swing_mode, valid_swing_modes)
+            return False
+        return await self.set_device_state(device_id, {"swing": swing_mode})
+
+    async def set_ac_full_state(self, device_id: str, state: dict) -> bool:
+        """Set multiple AC parameters at once."""
+        valid_keys = {"power", "temperature", "mode", "fan_mode", "swing"}
+        filtered_state = {k: v for k, v in state.items() if k in valid_keys}
+        
+        if not filtered_state:
+            _LOGGER.error("No valid parameters provided")
+            return False
+            
+        return await self.set_device_state(device_id, filtered_state)
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Cuby component."""
     if DOMAIN not in config:

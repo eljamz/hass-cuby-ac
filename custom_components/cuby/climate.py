@@ -88,10 +88,7 @@ class CubyClimate(ClimateEntity):
         if temperature is None:
             return
 
-        await self._api.set_device_state(
-            self._device["id"],
-            {"target_temperature": temperature}
-        )
+        await self._api.set_ac_temperature(self._device["id"], temperature)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set new target hvac mode."""
@@ -99,10 +96,17 @@ class CubyClimate(ClimateEntity):
             (k for k, v in HVAC_MODES.items() if v == hvac_mode),
             "off"
         )
-        await self._api.set_device_state(
-            self._device["id"],
-            {"mode": mode}
-        )
+        if hvac_mode == HVACMode.OFF:
+            await self._api.set_ac_power(self._device["id"], False)
+        else:
+            # Ensure the AC is on when changing modes
+            await self._api.set_ac_full_state(
+                self._device["id"],
+                {
+                    "power": True,
+                    "mode": mode
+                }
+            )
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Set new target fan mode."""
@@ -110,7 +114,12 @@ class CubyClimate(ClimateEntity):
             (k for k, v in FAN_MODES.items() if v == fan_mode),
             "auto"
         )
-        await self._api.set_device_state(
-            self._device["id"],
-            {"fan_mode": mode}
-        )
+        await self._api.set_ac_fan_mode(self._device["id"], mode)
+
+    async def async_turn_on(self) -> None:
+        """Turn the entity on."""
+        await self._api.set_ac_power(self._device["id"], True)
+
+    async def async_turn_off(self) -> None:
+        """Turn the entity off."""
+        await self._api.set_ac_power(self._device["id"], False)
