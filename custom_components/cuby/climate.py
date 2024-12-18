@@ -67,6 +67,9 @@ async def async_setup_entry(
 class CubyClimate(ClimateEntity):
     """Representation of a Cuby climate device."""
 
+    _attr_has_entity_name = True
+    _enable_turn_on_off_backwards_compatibility = False
+
     def __init__(self, api: CubyAPI, device: dict):
         """Initialize the climate device."""
         self._api = api
@@ -85,21 +88,33 @@ class CubyClimate(ClimateEntity):
         self._attr_min_temp = 16
         self._attr_max_temp = 30
         self._attr_target_temperature_step = 1
+        self._attr_hvac_mode = HVACMode.OFF
+        self._attr_current_temperature = None
+        self._attr_target_temperature = None
+        self._attr_fan_mode = FAN_AUTO
         self._state = {}
-        self._attr_hvac_mode = HVACMode.OFF  # Set initial HVAC mode
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity about to be added to hass."""
+        await super().async_added_to_hass()
+        await self.async_update()
 
     async def async_update(self) -> None:
         """Update the entity."""
-        self._state = await self._api.get_device_state(self._device["id"])
-        if self._state:
-            self._attr_current_temperature = self._state.get("current_temperature")
-            self._attr_target_temperature = self._state.get("target_temperature")
-            self._attr_hvac_mode = HVAC_MODES.get(
-                self._state.get("mode", "off"), HVACMode.OFF
-            )
-            self._attr_fan_mode = FAN_MODES.get(
-                self._state.get("fan_mode", "auto"), FAN_AUTO
-            )
+        try:
+            self._state = await self._api.get_device_state(self._device["id"])
+            if self._state:
+                self._attr_current_temperature = self._state.get("current_temperature")
+                self._attr_target_temperature = self._state.get("target_temperature")
+                self._attr_hvac_mode = HVAC_MODES.get(
+                    self._state.get("mode", "off"), HVACMode.OFF
+                )
+                self._attr_fan_mode = FAN_MODES.get(
+                    self._state.get("fan_mode", "auto"), FAN_AUTO
+                )
+        except Exception as err:
+            _LOGGER.error("Error updating climate entity: %s", err)
+            self._attr_available = False
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
