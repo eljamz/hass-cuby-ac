@@ -1,8 +1,17 @@
 """Global fixtures for Cuby integration tests."""
 import pytest
+from unittest.mock import patch
 
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
 from custom_components.cuby import DOMAIN, CONF_EXPIRATION
+
+pytest_plugins = "pytest_homeassistant_custom_component"
+
+# This fixture is used to prevent HomeAssistant from trying to write to the real config dir
+@pytest.fixture(autouse=True)
+def auto_enable_custom_integrations(enable_custom_integrations):
+    """Enable custom integrations in Home Assistant."""
+    yield
 
 @pytest.fixture
 def mock_config():
