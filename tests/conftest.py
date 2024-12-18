@@ -31,7 +31,7 @@ def mock_device_state():
     return {
         "power": True,
         "mode": "cool",
-        "temperature": 24,
+        "target_temperature": 24,
         "current_temperature": 26,
         "fan_mode": "auto",
         "swing": "off"
