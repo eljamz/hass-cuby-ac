@@ -1,14 +1,24 @@
+"""The Cuby A/C Control integration."""
 import logging
-import requests
+import asyncio
+import aiohttp
 import voluptuous as vol
-from homeassistant.helpers import config_validation as cv
 
-from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_API_KEY
+from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import (
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    Platform,
+)
+from homeassistant.helpers import config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "cuby"
-TOKEN = None
+CONF_EXPIRATION = "expiration"
+
+PLATFORMS = [Platform.CLIMATE]
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -16,41 +26,72 @@ CONFIG_SCHEMA = vol.Schema(
             {
                 vol.Required(CONF_USERNAME): cv.string,
                 vol.Required(CONF_PASSWORD): cv.string,
+                vol.Optional(CONF_EXPIRATION, default=0): cv.positive_int,
             }
         )
     },
     extra=vol.ALLOW_EXTRA,
 )
 
-def get_auth_token(username, password):
-    url = f"https://cuby.cloud/api/v2/token/{username}"
-    payload = {"password": password, "expiration": 0}
-    headers = {"Content-Type": "application/json"}
-    
-    try:
-        response = requests.post(url, json=payload, timeout=10)
-        response.raise_for_status()
-        token_data = response.json()
-        if token_data.get("status") == "ok":
-            _LOGGER.info("Authentication successful.")
-            return token_data["token"]
-    except Exception as e:
-        _LOGGER.error("Authentication failed: %s", e)
-    return None
+class CubyAPI:
+    """Cuby API client."""
 
-async def async_setup(hass, config):
+    def __init__(self, username: str, password: str, expiration: int = 0):
+        """Initialize the API client."""
+        self.username = username
+        self.password = password
+        self.expiration = expiration
+        self.token = None
+        self._session = None
+
+    async def authenticate(self) -> bool:
+        """Authenticate with the Cuby API."""
+        if self._session is None:
+            self._session = aiohttp.ClientSession()
+
+        try:
+            url = f"https://cuby.cloud/api/v2/token/{self.username}"
+            payload = {
+                "password": self.password,
+                "expiration": self.expiration
+            }
+
+            async with self._session.post(url, json=payload) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if data.get("status") == "ok":
+                        self.token = data.get("token")
+                        return True
+                return False
+        except Exception as err:
+            _LOGGER.error("Error authenticating with Cuby API: %s", err)
+            return False
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Cuby component."""
-    global TOKEN
+    if DOMAIN not in config:
+        return True
+
     conf = config[DOMAIN]
     username = conf[CONF_USERNAME]
     password = conf[CONF_PASSWORD]
+    expiration = conf[CONF_EXPIRATION]
 
-    TOKEN = get_auth_token(username, password)
-    if not TOKEN:
-        _LOGGER.error("Failed to retrieve token. Check your credentials.")
+    api = CubyAPI(username, password, expiration)
+    if not await api.authenticate():
+        _LOGGER.error("Failed to authenticate with Cuby API")
         return False
 
-    _LOGGER.info("Cuby integration successfully initialized.")
-    hass.data[DOMAIN] = {"token": TOKEN}
+    hass.data[DOMAIN] = api
 
+    for platform in PLATFORMS:
+        hass.async_create_task(
+            hass.helpers.discovery.async_load_platform(platform, DOMAIN, {}, config)
+        )
+
+    return True
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up Cuby from a config entry."""
+    # TODO: Implement config flow setup
     return True

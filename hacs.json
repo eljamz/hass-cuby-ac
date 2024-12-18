@@ -2,9 +2,9 @@
   "name": "Cuby Smart A/C Control",
   "description": "Control Cuby Smart A/C devices via Home Assistant.",
   "domain": "cuby",
-  "codeowner": ["@yeljamz"],
+  "codeowner": ["@eljamz"],
   "documentation": "https://github.com/eljamz/hass-cuby-ac",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "requirements": [],
   "config_flow": false
 }
