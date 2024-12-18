@@ -37,9 +37,9 @@ FAN_MODES = {
     "high": FAN_HIGH,
 }
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Set up the Cuby climate platform."""
-    api: CubyAPI = hass.data[DOMAIN]
+async def async_setup_entry(hass, entry, async_add_entities):
+    """Set up the Cuby climate platform from a config entry."""
+    api = hass.data[DOMAIN][entry.entry_id]
     _LOGGER.debug("Fetching Cuby devices...")
     devices = await api.get_devices()
     
