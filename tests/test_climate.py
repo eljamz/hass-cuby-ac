@@ -3,7 +3,10 @@ from unittest.mock import patch, MagicMock
 import pytest
 from homeassistant.components.climate.const import (
     HVACMode,
+)
+from homeassistant.const import (
     ATTR_TEMPERATURE,
+    UnitOfTemperature,
 )
 from custom_components.cuby.climate import CubyClimate
 
