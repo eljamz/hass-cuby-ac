@@ -67,6 +67,58 @@ class CubyAPI:
             _LOGGER.error("Error authenticating with Cuby API: %s", err)
             return False
 
+    async def get_devices(self) -> list:
+        """Get list of Cuby devices."""
+        if not self.token:
+            if not await self.authenticate():
+                return []
+
+        try:
+            url = "https://cuby.cloud/api/v2/devices"
+            headers = {"Authorization": f"Bearer {self.token}"}
+            
+            async with self._session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    return await response.json()
+                return []
+        except Exception as err:
+            _LOGGER.error("Error getting devices: %s", err)
+            return []
+
+    async def get_device_state(self, device_id: str) -> dict:
+        """Get the current state of a device."""
+        if not self.token:
+            if not await self.authenticate():
+                return {}
+
+        try:
+            url = f"https://cuby.cloud/api/v2/devices/{device_id}/state"
+            headers = {"Authorization": f"Bearer {self.token}"}
+            
+            async with self._session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    return await response.json()
+                return {}
+        except Exception as err:
+            _LOGGER.error("Error getting device state: %s", err)
+            return {}
+
+    async def set_device_state(self, device_id: str, state: dict) -> bool:
+        """Set the state of a device."""
+        if not self.token:
+            if not await self.authenticate():
+                return False
+
+        try:
+            url = f"https://cuby.cloud/api/v2/devices/{device_id}/state"
+            headers = {"Authorization": f"Bearer {self.token}"}
+            
+            async with self._session.post(url, headers=headers, json=state) as response:
+                return response.status == 200
+        except Exception as err:
+            _LOGGER.error("Error setting device state: %s", err)
+            return False
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Cuby component."""
     if DOMAIN not in config:

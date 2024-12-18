@@ -1,60 +1,116 @@
+"""Climate platform for Cuby integration."""
+from __future__ import annotations
+
 import logging
-import requests
+from typing import Any, Optional
+
 from homeassistant.components.climate import ClimateEntity
-from homeassistant.components.climate.const import HVAC_MODE_COOL, HVAC_MODE_OFF
-from homeassistant.const import TEMP_CELSIUS
+from homeassistant.components.climate.const import (
+    ClimateEntityFeature,
+    HVACMode,
+    FAN_AUTO,
+    FAN_LOW,
+    FAN_MEDIUM,
+    FAN_HIGH,
+)
+from homeassistant.const import (
+    ATTR_TEMPERATURE,
+    UnitOfTemperature,
+)
+from . import DOMAIN, CubyAPI
 
 _LOGGER = logging.getLogger(__name__)
-DOMAIN = "cuby"
+
+HVAC_MODES = {
+    "off": HVACMode.OFF,
+    "cool": HVACMode.COOL,
+    "heat": HVACMode.HEAT,
+    "auto": HVACMode.AUTO,
+    "dry": HVACMode.DRY,
+    "fan_only": HVACMode.FAN_ONLY,
+}
+
+FAN_MODES = {
+    "auto": FAN_AUTO,
+    "low": FAN_LOW,
+    "medium": FAN_MEDIUM,
+    "high": FAN_HIGH,
+}
+
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+    """Set up the Cuby climate platform."""
+    api: CubyAPI = hass.data[DOMAIN]
+    devices = await api.get_devices()
+    
+    entities = []
+    for device in devices:
+        entities.append(CubyClimate(api, device))
+    
+    async_add_entities(entities)
 
 class CubyClimate(ClimateEntity):
-    def __init__(self, name, token, device_id):
-        self._name = name
-        self._token = token
-        self._device_id = device_id
-        self._hvac_mode = HVAC_MODE_OFF
-        self._temperature = 24  # Default temperature
+    """Representation of a Cuby climate device."""
 
-    @property
-    def name(self):
-        return self._name
+    def __init__(self, api: CubyAPI, device: dict):
+        """Initialize the climate device."""
+        self._api = api
+        self._device = device
+        self._attr_unique_id = device["id"]
+        self._attr_name = device.get("name", f"Cuby AC {device['id']}")
+        self._attr_supported_features = (
+            ClimateEntityFeature.TARGET_TEMPERATURE
+            | ClimateEntityFeature.FAN_MODE
+        )
+        self._attr_hvac_modes = list(HVAC_MODES.values())
+        self._attr_fan_modes = list(FAN_MODES.values())
+        self._attr_temperature_unit = UnitOfTemperature.CELSIUS
+        self._attr_min_temp = 16
+        self._attr_max_temp = 30
+        self._attr_target_temperature_step = 1
+        self._state = {}
 
-    @property
-    def hvac_modes(self):
-        return [HVAC_MODE_COOL, HVAC_MODE_OFF]
+    async def async_update(self) -> None:
+        """Update the entity."""
+        self._state = await self._api.get_device_state(self._device["id"])
+        if self._state:
+            self._attr_current_temperature = self._state.get("current_temperature")
+            self._attr_target_temperature = self._state.get("target_temperature")
+            self._attr_hvac_mode = HVAC_MODES.get(
+                self._state.get("mode", "off"), HVACMode.OFF
+            )
+            self._attr_fan_mode = FAN_MODES.get(
+                self._state.get("fan_mode", "auto"), FAN_AUTO
+            )
 
-    @property
-    def temperature_unit(self):
-        return TEMP_CELSIUS
+    async def async_set_temperature(self, **kwargs: Any) -> None:
+        """Set new target temperature."""
+        temperature = kwargs.get(ATTR_TEMPERATURE)
+        if temperature is None:
+            return
 
-    @property
-    def hvac_mode(self):
-        return self._hvac_mode
+        await self._api.set_device_state(
+            self._device["id"],
+            {"target_temperature": temperature}
+        )
 
-    async def async_set_hvac_mode(self, hvac_mode):
-        url = f"https://cuby.cloud/api/v2/devices/{self._device_id}/actions"
-        payload = {"command": "set_mode", "value": hvac_mode.lower()}
-        headers = {"Authorization": f"Bearer {self._token}"}
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
+        """Set new target hvac mode."""
+        mode = next(
+            (k for k, v in HVAC_MODES.items() if v == hvac_mode),
+            "off"
+        )
+        await self._api.set_device_state(
+            self._device["id"],
+            {"mode": mode}
+        )
 
-        try:
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
-            response.raise_for_status()
-            _LOGGER.info("Set HVAC mode to %s", hvac_mode)
-            self._hvac_mode = hvac_mode
-            self.async_write_ha_state()
-        except Exception as e:
-            _LOGGER.error("Failed to set HVAC mode: %s", e)
-
-    async def async_update(self):
-        """Retrieve the current state of the A/C device."""
-        url = f"https://cuby.cloud/api/v2/devices/{self._device_id}"
-        headers = {"Authorization": f"Bearer {self._token}"}
-
-        try:
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            self._temperature = data.get("current_temperature", 24)
-            _LOGGER.info("Updated device temperature to %s", self._temperature)
-        except Exception as e:
-            _LOGGER.error("Failed to update device state: %s", e)
+    async def async_set_fan_mode(self, fan_mode: str) -> None:
+        """Set new target fan mode."""
+        mode = next(
+            (k for k, v in FAN_MODES.items() if v == fan_mode),
+            "auto"
+        )
+        await self._api.set_device_state(
+            self._device["id"],
+            {"fan_mode": mode}
+        )
