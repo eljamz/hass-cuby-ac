@@ -76,6 +76,8 @@ class CubyClimate(ClimateEntity):
         self._attr_supported_features = (
             ClimateEntityFeature.TARGET_TEMPERATURE
             | ClimateEntityFeature.FAN_MODE
+            | ClimateEntityFeature.TURN_ON
+            | ClimateEntityFeature.TURN_OFF
         )
         self._attr_hvac_modes = list(HVAC_MODES.values())
         self._attr_fan_modes = list(FAN_MODES.values())
@@ -84,6 +86,7 @@ class CubyClimate(ClimateEntity):
         self._attr_max_temp = 30
         self._attr_target_temperature_step = 1
         self._state = {}
+        self._attr_hvac_mode = HVACMode.OFF  # Set initial HVAC mode
 
     async def async_update(self) -> None:
         """Update the entity."""
