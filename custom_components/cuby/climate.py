@@ -40,10 +40,18 @@ FAN_MODES = {
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the Cuby climate platform."""
     api: CubyAPI = hass.data[DOMAIN]
+    _LOGGER.debug("Fetching Cuby devices...")
     devices = await api.get_devices()
+    
+    if not devices:
+        _LOGGER.error("No Cuby devices found")
+        return
+    
+    _LOGGER.debug("Found %d Cuby devices: %s", len(devices), devices)
     
     entities = []
     for device in devices:
+        _LOGGER.info("Adding Cuby device: %s", device.get("name", device["id"]))
         entities.append(CubyClimate(api, device))
     
     async_add_entities(entities)
