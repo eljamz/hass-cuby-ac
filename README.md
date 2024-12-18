@@ -5,15 +5,32 @@ This custom integration allows Home Assistant to control **Cuby smart A/C device
 ## Installation
 
 1. Install via **HACS**:
-   - Add this repository (`https://github.com/yourusername/cuby-home-assistant`) as a custom repository in HACS.
+   - Add this repository (`https://github.com/eljamz/hass-cuby-ac`) as a custom repository in HACS.
    - Search for "Cuby A/C Control" and install.
 
 2. Restart Home Assistant.
 
-3. Add the following to your `configuration.yaml`:
+3. Go to Settings -> Devices & Services
+4. Click "Add Integration"
+5. Search for "Cuby A/C Control"
+6. Enter your credentials:
+   - Email: Your Cuby account email
+   - Password: Your Cuby account password
+   - Token Expiration: (Optional) Token expiration time in seconds
 
-```yaml
-cuby:
-  username: "email@here.com"
-  password: "your_password"
-  expiration: 0
+## Features
+
+- Control A/C power (on/off)
+- Set temperature
+- Change operation mode (auto, cool, heat, dry, fan only)
+- Control fan speed
+- Monitor device status
+- View WiFi signal strength
+- Check online status
+
+## Troubleshooting
+
+If you encounter any issues:
+1. Check your credentials
+2. Ensure your Cuby devices are online
+3. Check the Home Assistant logs for detailed error messages

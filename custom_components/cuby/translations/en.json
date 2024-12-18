@@ -1,0 +1,21 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "data": {
+                    "username": "Email",
+                    "password": "Password",
+                    "expiration": "Token expiration (in seconds, 0 for no expiration)"
+                }
+            }
+        },
+        "error": {
+            "invalid_auth": "Invalid authentication",
+            "no_devices": "No devices found on account",
+            "unknown": "Unexpected error"
+        },
+        "abort": {
+            "already_configured": "Account is already configured"
+        }
+    }
+} 
