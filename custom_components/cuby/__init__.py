@@ -165,6 +165,25 @@ class CubyAPI:
             _LOGGER.error("Error getting device info: %s", err)
             return {}
 
+    async def get_gas_sensor_reading(self, device_id: str) -> dict:
+        """Get gas level information."""
+        if not self.token:
+            if not await self.authenticate():
+                return {}
+
+        try:
+            url = f"https://cuby.cloud/api/v2/history/gas/level/{device_id}"
+            headers = {"Authorization": f"Bearer {self.token}"}
+            
+            async with self._session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    return await response.json()
+                return {}
+        except Exception as err:
+            _LOGGER.error("Error getting device info: %s", err)
+            return {}
+
+
     async def set_ac_power(self, device_id: str, power: bool) -> bool:
         """Turn the AC on or off."""
         return await self.set_device_state(device_id, {"power": power})

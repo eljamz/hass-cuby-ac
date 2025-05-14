@@ -36,7 +36,11 @@ async def async_setup_entry(
             CubyOnlineSensor(api, device),
             CubyModeSensor(api, device),
         ])
-    
+
+        gas_reading = await api.get_gas_sensor_reading(device["id"])
+        if gas_reading and "level" in gas_reading:
+            entities.append(CubyGasSensor(api, device))
+
     async_add_entities(entities)
 
 class CubyBaseSensor(SensorEntity):
@@ -101,3 +105,20 @@ class CubyModeSensor(CubyBaseSensor):
         state = await self._api.get_device_state(self._device["id"])
         if state:
             self._attr_native_value = state.get("mode", "unknown")
+
+class CubyGasSensor(CubyBaseSensor):
+    """Representation of Cuby LP Gas sensor."""
+
+    def __init__(self, api: CubyAPI, device: dict):
+        super().__init__(api, device)
+        self._attr_unique_id = f"{device['id']}_gas"
+        self._attr_name = f"{device.get('name', 'Cuby Gas')} Gas Level"
+        self._attr_state_class = SensorDeviceClass.GAS
+        self._attr_native_unit_of_measurement = PERCENTAGE
+        self._attr_icon = "mdi:gas-cylinder"
+
+    async def async_update(self) -> None:
+        """Update the sensor."""
+        reading = await self._api.get_gas_sensor_reading(self._device["id"])
+        if reading:
+            self._attr_native_value = reading.get("level", "unknown")
